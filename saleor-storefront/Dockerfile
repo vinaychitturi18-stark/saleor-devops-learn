@@ -39,8 +39,15 @@ ENV NEXT_OUTPUT=standalone
 # is available, requests timeout and the build fails.
 # Fix: start a lightweight mock GraphQL server on port 8000 so those
 # prerender calls get instant empty responses and complete without timeout.
+# Mock server port must match the scheme+host of NEXT_PUBLIC_SALEOR_API_URL.
+# http://saleor.local/graphql/  → port 80
+# http://host.docker.internal:8000/graphql/ → port 8000
+# Pass MOCK_PORT as a build arg to switch between the two contexts.
+ARG MOCK_PORT=80
+ENV MOCK_PORT=$MOCK_PORT
 RUN node -e " \
   const http = require('http'); \
+  const port = parseInt(process.env.MOCK_PORT || '80'); \
   http.createServer((req, res) => { \
     let b = ''; \
     req.on('data', d => { b += d; }); \
@@ -48,7 +55,7 @@ RUN node -e " \
       res.writeHead(200, {'Content-Type': 'application/json'}); \
       res.end('{\"data\":{}}'); \
     }); \
-  }).listen(8000, '0.0.0.0', () => process.stderr.write('Mock GraphQL ready on :8000\n')); \
+  }).listen(port, '0.0.0.0', () => process.stderr.write('Mock GraphQL ready on :' + port + '\n')); \
 " & sleep 2 && pnpm exec next build
 
 # ── Stage 3: final ────────────────────────────────────────────────────────────

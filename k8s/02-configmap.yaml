@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saleor-config
+  namespace: saleor
+data:
+  # --- Database ---
+  POSTGRES_DB: saleor
+  POSTGRES_USER: saleor
+  DATABASE_URL: "postgres://saleor:saleor@postgres:5432/saleor"
+
+  # --- Cache / Celery ---
+  CELERY_BROKER_URL: "redis://redis:6379/1"
+  CACHE_URL: "redis://redis:6379/0"
+
+  # --- Saleor core ---
+  DEBUG: "False"
+  ALLOWED_HOSTS: "saleor,saleor.saleor.svc.cluster.local,localhost"
+  ALLOWED_CLIENT_HOSTS: "saleor.local,localhost"
+  DEFAULT_FROM_EMAIL: "noreply@saleor.local"
+
+  # --- Static / Media ---
+  STATIC_URL: "/static/"
+  MEDIA_URL: "/media/"
+
+  # --- Dashboard ---
+  DASHBOARD_URL: "http://saleor.local/dashboard/"
+  STOREFRONT_URL: "http://saleor.local/"
+
+  # --- Uvicorn ---
+  UVICORN_WORKERS: "2"

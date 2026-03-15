@@ -213,7 +213,7 @@ async function fetchWithRetry(
 	operationName: string,
 	variablesForLog?: string,
 ): Promise<FetchResult> {
-	const url = process.env.NEXT_PUBLIC_SALEOR_API_URL;
+	const url = process.env.SALEOR_API_URL || process.env.NEXT_PUBLIC_SALEOR_API_URL;
 	if (!url) {
 		return networkError("Missing NEXT_PUBLIC_SALEOR_API_URL env variable");
 	}
@@ -411,7 +411,7 @@ interface RawGraphQLOptions {
  * }
  */
 export async function executeRawGraphQL<T = unknown>(options: RawGraphQLOptions): Promise<GraphQLResult<T>> {
-	const url = process.env.NEXT_PUBLIC_SALEOR_API_URL;
+	const url = process.env.SALEOR_API_URL || process.env.NEXT_PUBLIC_SALEOR_API_URL;
 	if (!url) {
 		return networkError("Missing NEXT_PUBLIC_SALEOR_API_URL env variable");
 	}
