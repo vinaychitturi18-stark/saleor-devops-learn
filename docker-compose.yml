@@ -1,0 +1,157 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Local development docker-compose
+# Usage:
+#   docker compose build
+#   docker compose up
+#
+# First-time setup:
+#   docker compose run --rm saleor python manage.py populatedb --createsuperuser
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Infrastructure ─────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: saleor
+      POSTGRES_USER: saleor
+      POSTGRES_PASSWORD: saleor
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saleor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Saleor Backend ──────────────────────────────────────────────────────────
+
+  saleor:
+    build:
+      context: ./saleor
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://saleor:saleor@postgres:5432/saleor
+      CACHE_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      SECRET_KEY: changeme-dev-secret-key
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+      ALLOWED_CLIENT_HOSTS: "localhost,127.0.0.1,host.docker.internal"
+      DASHBOARD_URL: http://localhost:9000/
+      HTTP_IP_FILTER_ALLOW_LOOPBACK_IPS: "True"
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      EMAIL_URL: smtp://localhost:1025
+    volumes:
+      - saleor-media:/app/media
+      - saleor-static:/app/static
+
+  # ── Celery Worker ───────────────────────────────────────────────────────────
+
+  worker:
+    build:
+      context: ./saleor
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://saleor:saleor@postgres:5432/saleor
+      CACHE_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      SECRET_KEY: changeme-dev-secret-key
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      EMAIL_URL: smtp://localhost:1025
+
+  # ── Celery Beat Scheduler ───────────────────────────────────────────────────
+
+  beat:
+    build:
+      context: ./saleor
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["beat"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://saleor:saleor@postgres:5432/saleor
+      CACHE_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      SECRET_KEY: changeme-dev-secret-key
+      DEBUG: "True"
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      EMAIL_URL: smtp://localhost:1025
+
+  # ── Saleor Dashboard ────────────────────────────────────────────────────────
+
+  dashboard:
+    build:
+      context: ./saleor-dashboard
+      dockerfile: Dockerfile
+      args:
+        API_URL: http://localhost:8000/graphql/
+        APP_MOUNT_URI: /
+        STATIC_URL: /
+    restart: unless-stopped
+    ports:
+      - "9000:80"
+    depends_on:
+      - saleor
+
+  # ── Saleor Storefront ───────────────────────────────────────────────────────
+
+  storefront:
+    build:
+      context: ./saleor-storefront
+      dockerfile: Dockerfile
+      args:
+        # host.docker.internal resolves to the Mac host from both inside Docker
+        # containers (SSR) and the browser (Docker Desktop adds it to /etc/hosts).
+        NEXT_PUBLIC_SALEOR_API_URL: http://host.docker.internal:8000/graphql/
+        NEXT_PUBLIC_STOREFRONT_URL: http://localhost:3000
+        NEXT_PUBLIC_DEFAULT_CHANNEL: default-channel
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - saleor
+
+volumes:
+  postgres-data:
+  saleor-media:
+  saleor-static:
