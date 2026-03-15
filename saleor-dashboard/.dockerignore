@@ -1,0 +1,9 @@
+node_modules
+.pnpm-store
+build
+.git
+*.md
+.env
+playwright-report
+test-results
+storybook-static
