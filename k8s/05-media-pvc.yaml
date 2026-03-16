@@ -1,0 +1,12 @@
+# Shared PVC for Saleor media uploads (mounted by saleor API and served via nginx ingress)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: saleor-media-pvc
+  namespace: saleor
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

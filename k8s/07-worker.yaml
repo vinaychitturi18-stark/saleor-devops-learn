@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: saleor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          # Replace DOCKERHUB_USER with your Docker Hub username
+          image: DOCKERHUB_USER/saleor-backend:latest
+          command: ["/entrypoint.sh", "worker"]
+          envFrom:
+            - configMapRef:
+                name: saleor-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: SECRET_KEY
+            - name: EMAIL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: EMAIL_URL
+          volumeMounts:
+            - name: media
+              mountPath: /app/media
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: saleor-media-pvc
