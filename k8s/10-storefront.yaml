@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront
+  namespace: saleor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storefront
+  template:
+    metadata:
+      labels:
+        app: storefront
+    spec:
+      containers:
+        - name: storefront
+          # Replace DOCKERHUB_USER with your Docker Hub username
+          image: DOCKERHUB_USER/saleor-storefront:latest
+          env:
+            # SSR (server-side) calls go directly to the saleor service inside the cluster.
+            # The browser uses NEXT_PUBLIC_SALEOR_API_URL (baked at build time).
+            - name: SALEOR_API_URL
+              value: "http://saleor:8000/graphql/"
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storefront
+  namespace: saleor
+spec:
+  selector:
+    app: storefront
+  ports:
+    - port: 3000
+      targetPort: 3000
