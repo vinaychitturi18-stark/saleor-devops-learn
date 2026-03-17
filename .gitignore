@@ -1,3 +1,6 @@
+# Helm secrets (never commit real passwords)
+secrets.yaml
+
 # Environment variables
 .env
 .env.local

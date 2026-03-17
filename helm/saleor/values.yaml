@@ -1,0 +1,34 @@
+# Docker Hub username
+dockerhubUser: vinaylearnerman
+
+# Image tag to deploy
+imageTag: latest
+
+# Hostname for the ingress
+hostname: saleor.local
+
+# Secrets — override these in secrets.yaml (never commit real values)
+secrets:
+  postgresPassword: ""
+  secretKey: ""
+  emailUrl: ""
+
+# Database config
+postgres:
+  db: saleor
+  user: saleor
+  storage: 5Gi
+
+# Media storage size
+media:
+  storage: 2Gi
+
+# Replica counts
+replicas:
+  saleor: 1
+  dashboard: 1
+  storefront: 1
+  worker: 0
+  beat: 0
+  postgres: 1
+  redis: 1
