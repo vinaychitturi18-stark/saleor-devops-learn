@@ -1,0 +1,9 @@
+Saleor has been deployed!
+
+Access URLs:
+  Storefront : http://{{ .Values.hostname }}:8080/
+  Dashboard  : http://{{ .Values.hostname }}:8080/dashboard/
+  GraphQL    : http://{{ .Values.hostname }}:8080/graphql/
+
+Start port-forward:
+  ./k8s/forward.sh start

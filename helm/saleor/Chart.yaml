@@ -1,0 +1,6 @@
+apiVersion: v2
+name: saleor
+description: Saleor e-commerce stack on kubernetes
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
