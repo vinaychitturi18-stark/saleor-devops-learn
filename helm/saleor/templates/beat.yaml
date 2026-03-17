@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beat
+  namespace: saleor
+spec:
+  replicas: {{ .Values.replicas.beat }}
+  selector:
+    matchLabels:
+      app: beat
+  template:
+    metadata:
+      labels:
+        app: beat
+    spec:
+      containers:
+        - name: beat
+          image: {{ .Values.dockerhubUser }}/saleor-backend:{{ .Values.imageTag }}
+          command: ["/entrypoint.sh", "beat"]
+          envFrom:
+            - configMapRef:
+                name: saleor-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: SECRET_KEY
+            - name: EMAIL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: EMAIL_URL
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"

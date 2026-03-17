@@ -1,0 +1,64 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: saleor-ingress
+  namespace: saleor
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    # Strip /graphql prefix so the saleor backend receives /graphql/ directly
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ .Values.hostname }}
+      http:
+        paths:
+          # Backend API — GraphQL, REST, webhooks
+          - path: /graphql/
+            pathType: Prefix
+            backend:
+              service:
+                name: saleor
+                port:
+                  number: 8000
+          # Django admin
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: saleor
+                port:
+                  number: 8000
+          # Static files served by the saleor container (collectstatic)
+          - path: /static/
+            pathType: Prefix
+            backend:
+              service:
+                name: saleor
+                port:
+                  number: 8000
+          # Uploaded media files
+          - path: /media/
+            pathType: Prefix
+            backend:
+              service:
+                name: saleor
+                port:
+                  number: 8000
+          # Dashboard (nginx-served SPA at /dashboard/)
+          - path: /dashboard/
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard
+                port:
+                  number: 80
+          # Storefront — catch-all (must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: storefront
+                port:
+                  number: 3000

@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saleor
+  namespace: saleor
+spec:
+  replicas: {{ .Values.replicas.saleor }}
+  selector:
+    matchLabels:
+      app: saleor
+  template:
+    metadata:
+      labels:
+        app: saleor
+    spec:
+      initContainers:
+        # Wait for postgres to be ready before starting
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -U saleor; do
+                echo "Waiting for postgres..."; sleep 2
+              done
+      containers:
+        - name: saleor
+          image: {{ .Values.dockerhubUser }}/saleor-backend:{{ .Values.imageTag }}
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: saleor-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: SECRET_KEY
+            - name: EMAIL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saleor-secrets
+                  key: EMAIL_URL
+          volumeMounts:
+            - name: media
+              mountPath: /app/media
+          readinessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: saleor-media-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saleor
+  namespace: saleor
+spec:
+  selector:
+    app: saleor
+  ports:
+    - port: 8000
+      targetPort: 8000
