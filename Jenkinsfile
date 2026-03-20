@@ -8,10 +8,20 @@ pipeline {
         ECS_CLUSTER      = 'saleor-prod'
         BACKEND_IMAGE    = "${ECR_REGISTRY}/saleor-backend"
         STOREFRONT_IMAGE = "${ECR_REGISTRY}/saleor-storefront"
-        HOME             = '/var/lib/jenkins'
+        DOCKER_CONFIG    = "${WORKSPACE}/.docker"
     }
 
     stages {
+
+        stage('ECR Login') {
+            steps {
+                sh '''
+                    mkdir -p $DOCKER_CONFIG
+                    aws ecr get-login-password --region $AWS_REGION | \
+                        docker --config $DOCKER_CONFIG login --username AWS --password-stdin $ECR_REGISTRY
+                '''
+            }
+        }
 
         stage('Build Backend') {
             steps {
@@ -38,10 +48,10 @@ pipeline {
         stage('Push Images to ECR') {
             steps {
                 sh '''
-                    docker push $BACKEND_IMAGE:$BUILD_NUMBER
-                    docker push $BACKEND_IMAGE:latest
-                    docker push $STOREFRONT_IMAGE:$BUILD_NUMBER
-                    docker push $STOREFRONT_IMAGE:latest
+                    docker --config $DOCKER_CONFIG push $BACKEND_IMAGE:$BUILD_NUMBER
+                    docker --config $DOCKER_CONFIG push $BACKEND_IMAGE:latest
+                    docker --config $DOCKER_CONFIG push $STOREFRONT_IMAGE:$BUILD_NUMBER
+                    docker --config $DOCKER_CONFIG push $STOREFRONT_IMAGE:latest
                 '''
             }
         }
@@ -77,6 +87,9 @@ pipeline {
         }
         failure {
             echo "Pipeline failed. Check logs above."
+        }
+        always {
+            sh 'rm -rf $DOCKER_CONFIG'
         }
     }
 }
