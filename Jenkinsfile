@@ -24,60 +24,52 @@ pipeline {
             }
         }
 
-        stage('Setup Buildx') {
-            steps {
-                sh '''
-                    docker buildx use armbuilder || docker buildx create --name armbuilder --use
-                    docker buildx inspect --bootstrap
-                    ln -sfn $HOME/.docker/buildx $DOCKER_CONFIG/buildx
-                '''
-            }
-        }
-
-        stage('Build & Push Backend') {
+        stage('Build Backend') {
             steps {
                 dir('saleor') {
                     sh '''
-                        docker --config $DOCKER_CONFIG buildx build \
-                            --platform linux/arm64 \
-                            --builder armbuilder \
-                            -t $BACKEND_IMAGE:$BUILD_NUMBER \
-                            -t $BACKEND_IMAGE:latest \
-                            --push .
+                        docker build -t $BACKEND_IMAGE:$BUILD_NUMBER .
+                        docker tag $BACKEND_IMAGE:$BUILD_NUMBER $BACKEND_IMAGE:latest
                     '''
                 }
             }
         }
 
-        stage('Build & Push Dashboard') {
+        stage('Build Dashboard') {
             steps {
                 dir('saleor-dashboard') {
                     sh '''
-                        docker --config $DOCKER_CONFIG buildx build \
-                            --platform linux/arm64 \
-                            --builder armbuilder \
+                        docker build \
                             --build-arg API_URL=https://learnwithvinay.in/graphql/ \
                             --build-arg APP_MOUNT_URI=/dashboard/ \
-                            -t $DASHBOARD_IMAGE:$BUILD_NUMBER \
-                            -t $DASHBOARD_IMAGE:latest \
-                            --push .
+                            -t $DASHBOARD_IMAGE:$BUILD_NUMBER .
+                        docker tag $DASHBOARD_IMAGE:$BUILD_NUMBER $DASHBOARD_IMAGE:latest
                     '''
                 }
             }
         }
 
-        stage('Build & Push Storefront') {
+        stage('Build Storefront') {
             steps {
                 dir('saleor-storefront') {
                     sh '''
-                        docker --config $DOCKER_CONFIG buildx build \
-                            --platform linux/arm64 \
-                            --builder armbuilder \
-                            -t $STOREFRONT_IMAGE:$BUILD_NUMBER \
-                            -t $STOREFRONT_IMAGE:latest \
-                            --push .
+                        docker build -t $STOREFRONT_IMAGE:$BUILD_NUMBER .
+                        docker tag $STOREFRONT_IMAGE:$BUILD_NUMBER $STOREFRONT_IMAGE:latest
                     '''
                 }
+            }
+        }
+
+        stage('Push Images to ECR') {
+            steps {
+                sh '''
+                    docker --config $DOCKER_CONFIG push $BACKEND_IMAGE:$BUILD_NUMBER
+                    docker --config $DOCKER_CONFIG push $BACKEND_IMAGE:latest
+                    docker --config $DOCKER_CONFIG push $DASHBOARD_IMAGE:$BUILD_NUMBER
+                    docker --config $DOCKER_CONFIG push $DASHBOARD_IMAGE:latest
+                    docker --config $DOCKER_CONFIG push $STOREFRONT_IMAGE:$BUILD_NUMBER
+                    docker --config $DOCKER_CONFIG push $STOREFRONT_IMAGE:latest
+                '''
             }
         }
 
