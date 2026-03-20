@@ -2,7 +2,6 @@
 
 # Generated GraphQL types (regenerate with `pnpm generate` and `pnpm generate:checkout`)
 gql/
-src/checkout/graphql/generated/
 
 .env
 
