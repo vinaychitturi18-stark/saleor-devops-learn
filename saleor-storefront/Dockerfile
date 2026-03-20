@@ -22,28 +22,18 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Real build-time env vars — passed via --build-arg
-ARG NEXT_PUBLIC_SALEOR_API_URL=https://dev.learnwithvinay.in/graphql/
-ARG NEXT_PUBLIC_STOREFRONT_URL=http://localhost:3000
+ARG NEXT_PUBLIC_SALEOR_API_URL=https://learnwithvinay.in/graphql/
+ARG NEXT_PUBLIC_STOREFRONT_URL=https://learnwithvinay.in
 ARG NEXT_PUBLIC_DEFAULT_CHANNEL=default-channel
 
-# Store real URL for post-build patching
-ENV REAL_API_URL=$NEXT_PUBLIC_SALEOR_API_URL
+ENV NEXT_PUBLIC_SALEOR_API_URL=$NEXT_PUBLIC_SALEOR_API_URL
 ENV NEXT_PUBLIC_STOREFRONT_URL=$NEXT_PUBLIC_STOREFRONT_URL
 ENV NEXT_PUBLIC_DEFAULT_CHANNEL=$NEXT_PUBLIC_DEFAULT_CHANNEL
 
 # Enable standalone output mode for Docker (produces a self-contained server)
 ENV NEXT_OUTPUT=standalone
 
-# During build, "use cache" components try to call the GraphQL API to pre-populate
-# caches. If the URL resolves (even with 503), Next.js retries and eventually
-# times out with USE_CACHE_TIMEOUT. If the URL does NOT resolve (ENOTFOUND),
-# Next.js fails fast and handles it gracefully.
-# Fix: build with a placeholder URL that won't resolve, then patch the real URL
-# into the JS bundle after build.
-ENV NEXT_PUBLIC_SALEOR_API_URL=https://saleor-build-placeholder.invalid/graphql/
-RUN pnpm exec next build && \
-    find .next -type f -name "*.js" \
-      -exec sed -i "s|https://saleor-build-placeholder.invalid/graphql/|${REAL_API_URL}|g" {} +
+RUN pnpm exec next build
 
 # ── Stage 3: final ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS final
