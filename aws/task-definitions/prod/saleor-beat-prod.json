@@ -1,0 +1,62 @@
+{
+  "family": "saleor-beat-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::249297038289:role/ecsTaskRole",
+  "taskRoleArn": "arn:aws:iam::249297038289:role/ecsTaskRole",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "saleor-beat",
+      "image": "249297038289.dkr.ecr.us-east-1.amazonaws.com/saleor-backend:latest",
+      "command": ["beat"],
+      "essential": true,
+      "environment": [
+        { "name": "DEBUG", "value": "False" },
+        { "name": "PUBLIC_URL", "value": "https://learnwithvinay.in" },
+        { "name": "AWS_MEDIA_BUCKET_NAME", "value": "saleor-media-prod-learnwithvinay" },
+        { "name": "AWS_STORAGE_BUCKET_NAME", "value": "saleor-media-prod-learnwithvinay" },
+        { "name": "AWS_S3_REGION_NAME", "value": "us-east-1" }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:DATABASE_URL::"
+        },
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:SECRET_KEY::"
+        },
+        {
+          "name": "CELERY_BROKER_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:CELERY_BROKER_URL::"
+        },
+        {
+          "name": "RSA_PRIVATE_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:RSA_PRIVATE_KEY::"
+        },
+        {
+          "name": "ALLOWED_HOSTS",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:ALLOWED_HOSTS::"
+        },
+        {
+          "name": "ALLOWED_CLIENT_HOSTS",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:ALLOWED_CLIENT_HOSTS::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/saleor-beat-prod",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

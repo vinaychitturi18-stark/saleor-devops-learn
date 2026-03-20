@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { type Metadata } from "next";
-import { cacheLife, cacheTag } from "next/cache";
 import { ErrorBoundary } from "react-error-boundary";
 import edjsHTML from "editorjs-html";
 import xss from "xss";
@@ -23,10 +22,6 @@ import {
 // ============================================================================
 
 async function getProductData(slug: string, channel: string) {
-	"use cache";
-	cacheLife("minutes");
-	cacheTag(`product:${slug}`);
-
 	const result = await executePublicGraphQL(ProductDetailsDocument, {
 		variables: {
 			slug: decodeURIComponent(slug),

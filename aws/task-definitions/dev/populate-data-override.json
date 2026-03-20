@@ -1,0 +1,6 @@
+{
+  "containerOverrides": [{
+    "name": "saleor-manage",
+    "command": ["python manage.py populatedb --createsuperuser"]
+  }]
+}

@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { type ResolvingMetadata, type Metadata } from "next";
-import { cacheLife, cacheTag } from "next/cache";
 import { ProductListByCollectionDocument, ProductOrderField, OrderDirection } from "@/gql/graphql";
 import { executePublicGraphQL } from "@/lib/graphql";
 import { getPaginatedListVariables } from "@/lib/utils";
@@ -11,10 +10,6 @@ import { buildSortVariables, buildFilterVariables } from "@/ui/components/plp/fi
 import { CollectionPageClient } from "./client";
 
 async function getCollectionData(slug: string, channel: string) {
-	"use cache";
-	cacheLife("minutes");
-	cacheTag(`collection:${slug}`);
-
 	const result = await executePublicGraphQL(ProductListByCollectionDocument, {
 		variables: { slug, channel, first: 1 },
 		revalidate: 300,
