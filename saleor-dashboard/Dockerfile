@@ -30,7 +30,7 @@ ENV APPS_MARKETPLACE_API_URL=$APPS_MARKETPLACE_API_URL
 ENV EXTENSIONS_API_URL=$EXTENSIONS_API_URL
 
 # Build the SPA — skip prebuild codegen (generated files already in repo)
-RUN NODE_OPTIONS=--max-old-space-size=3072 pnpm exec vite build
+RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm exec vite build
 
 # ── Stage 2: serve with nginx ────────────────────────────────────────────────
 FROM nginx:alpine AS final
