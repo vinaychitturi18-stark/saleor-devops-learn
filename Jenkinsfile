@@ -29,6 +29,7 @@ pipeline {
                 sh '''
                     docker buildx use armbuilder || docker buildx create --name armbuilder --use
                     docker buildx inspect --bootstrap
+                    ln -sfn $HOME/.docker/buildx $DOCKER_CONFIG/buildx
                 '''
             }
         }
