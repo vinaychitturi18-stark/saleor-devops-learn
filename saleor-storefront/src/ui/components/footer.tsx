@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cacheLife, cacheTag } from "next/cache";
 import { LinkWithChannel } from "../atoms/link-with-channel";
 import { ChannelSelect } from "./channel-select";
 import { ChannelsListDocument, MenuGetBySlugDocument } from "@/gql/graphql";
@@ -23,12 +22,8 @@ const defaultFooterLinks = {
 	],
 };
 
-/** Cached channels list - rarely changes */
+/** Channels list - cached via revalidate in executePublicGraphQL */
 async function getChannels() {
-	"use cache";
-	cacheLife("days"); // Cache for 1 day
-	cacheTag("channels");
-
 	if (!process.env.SALEOR_APP_TOKEN) {
 		return null;
 	}
@@ -42,12 +37,8 @@ async function getChannels() {
 	return result.ok ? result.data : null;
 }
 
-/** Cached footer menu */
+/** Footer menu - cached via revalidate in executePublicGraphQL */
 async function getFooterMenu(channel: string) {
-	"use cache";
-	cacheLife("hours"); // Cache for 1 hour
-	cacheTag("footer-menu");
-
 	const result = await executePublicGraphQL(MenuGetBySlugDocument, {
 		variables: { slug: "footer", channel },
 		revalidate: 60 * 60 * 24,
