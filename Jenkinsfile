@@ -23,36 +23,42 @@ pipeline {
             }
         }
 
-        stage('Build Backend') {
+        stage('Setup Buildx') {
+            steps {
+                sh '''
+                    docker buildx use armbuilder || docker buildx create --name armbuilder --use
+                    docker buildx inspect --bootstrap
+                '''
+            }
+        }
+
+        stage('Build & Push Backend') {
             steps {
                 dir('saleor') {
                     sh '''
-                        docker build -t $BACKEND_IMAGE:$BUILD_NUMBER .
-                        docker tag $BACKEND_IMAGE:$BUILD_NUMBER $BACKEND_IMAGE:latest
+                        docker --config $DOCKER_CONFIG buildx build \
+                            --platform linux/arm64 \
+                            --builder armbuilder \
+                            -t $BACKEND_IMAGE:$BUILD_NUMBER \
+                            -t $BACKEND_IMAGE:latest \
+                            --push .
                     '''
                 }
             }
         }
 
-        stage('Build Storefront') {
+        stage('Build & Push Storefront') {
             steps {
                 dir('saleor-storefront') {
                     sh '''
-                        docker build -t $STOREFRONT_IMAGE:$BUILD_NUMBER .
-                        docker tag $STOREFRONT_IMAGE:$BUILD_NUMBER $STOREFRONT_IMAGE:latest
+                        docker --config $DOCKER_CONFIG buildx build \
+                            --platform linux/arm64 \
+                            --builder armbuilder \
+                            -t $STOREFRONT_IMAGE:$BUILD_NUMBER \
+                            -t $STOREFRONT_IMAGE:latest \
+                            --push .
                     '''
                 }
-            }
-        }
-
-        stage('Push Images to ECR') {
-            steps {
-                sh '''
-                    docker --config $DOCKER_CONFIG push $BACKEND_IMAGE:$BUILD_NUMBER
-                    docker --config $DOCKER_CONFIG push $BACKEND_IMAGE:latest
-                    docker --config $DOCKER_CONFIG push $STOREFRONT_IMAGE:$BUILD_NUMBER
-                    docker --config $DOCKER_CONFIG push $STOREFRONT_IMAGE:latest
-                '''
             }
         }
 

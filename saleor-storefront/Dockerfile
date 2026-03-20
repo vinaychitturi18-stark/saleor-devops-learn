@@ -48,6 +48,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install curl for ECS health checks (alpine only has wget)
+RUN apk add --no-cache curl
+
 # Copy the standalone server bundle
 COPY --from=builder /app/.next/standalone ./
 
