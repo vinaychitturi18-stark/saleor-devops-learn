@@ -8,6 +8,7 @@ pipeline {
         ECS_CLUSTER      = 'saleor-prod'
         BACKEND_IMAGE    = "${ECR_REGISTRY}/saleor-backend"
         STOREFRONT_IMAGE = "${ECR_REGISTRY}/saleor-storefront"
+        HOME             = '/var/lib/jenkins'
     }
 
     stages {
