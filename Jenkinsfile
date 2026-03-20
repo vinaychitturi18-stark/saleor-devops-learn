@@ -33,7 +33,7 @@ pipeline {
             steps {
                 dir('saleor-storefront') {
                     sh '''
-                        docker build -t $STOREFRONT_IMAGE:$BUILD_NUMBER .
+                        docker build --memory=1g --memory-swap=2g -t $STOREFRONT_IMAGE:$BUILD_NUMBER .
                         docker tag $STOREFRONT_IMAGE:$BUILD_NUMBER $STOREFRONT_IMAGE:latest
                     '''
                 }
