@@ -20,7 +20,7 @@ pipeline {
 
         stage('Build Backend') {
             steps {
-                dir('saleor-backend') {
+                dir('saleor') {
                     sh '''
                         docker build -t $BACKEND_IMAGE:$BUILD_NUMBER .
                         docker tag $BACKEND_IMAGE:$BUILD_NUMBER $BACKEND_IMAGE:latest
