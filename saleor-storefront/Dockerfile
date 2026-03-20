@@ -41,7 +41,8 @@ ENV NEXT_OUTPUT=standalone
 # Fix: build with a placeholder URL that won't resolve, then patch the real URL
 # into the JS bundle after build.
 ENV NEXT_PUBLIC_SALEOR_API_URL=https://saleor-build-placeholder.invalid/graphql/
-RUN pnpm exec next build && \
+RUN pnpm generate:checkout && \
+    pnpm exec next build && \
     find .next -type f -name "*.js" \
       -exec sed -i "s|https://saleor-build-placeholder.invalid/graphql/|${REAL_API_URL}|g" {} +
 
