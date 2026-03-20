@@ -1,0 +1,74 @@
+{
+  "family": "saleor-backend-manage-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::249297038289:role/ecsTaskRole",
+  "taskRoleArn": "arn:aws:iam::249297038289:role/ecsTaskRole",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "saleor-manage",
+      "image": "249297038289.dkr.ecr.us-east-1.amazonaws.com/saleor-backend:latest",
+      "entryPoint": ["sh", "-c"],
+      "command": ["echo ready"],
+      "essential": true,
+      "environment": [
+        { "name": "DEBUG", "value": "False" },
+        { "name": "PUBLIC_URL", "value": "https://learnwithvinay.in" },
+        { "name": "AWS_MEDIA_BUCKET_NAME", "value": "saleor-media-prod-learnwithvinay" },
+        { "name": "AWS_STORAGE_BUCKET_NAME", "value": "saleor-media-prod-learnwithvinay" },
+        { "name": "AWS_S3_REGION_NAME", "value": "us-east-1" },
+        { "name": "AWS_MEDIA_CUSTOM_DOMAIN", "value": "saleor-media-prod-learnwithvinay.s3.amazonaws.com" },
+        { "name": "AWS_DEFAULT_ACL", "value": "public-read" },
+        { "name": "AWS_QUERYSTRING_AUTH", "value": "False" }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:DATABASE_URL::"
+        },
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:SECRET_KEY::"
+        },
+        {
+          "name": "ALLOWED_HOSTS",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:ALLOWED_HOSTS::"
+        },
+        {
+          "name": "ALLOWED_CLIENT_HOSTS",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:ALLOWED_CLIENT_HOSTS::"
+        },
+        {
+          "name": "EMAIL_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:EMAIL_URL::"
+        },
+        {
+          "name": "CELERY_BROKER_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:CELERY_BROKER_URL::"
+        },
+        {
+          "name": "CACHE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:CACHE_URL::"
+        },
+        {
+          "name": "RSA_PRIVATE_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:249297038289:secret:saleor/prod-ec7dY5:RSA_PRIVATE_KEY::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/saleor-backend-prod",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "manage"
+        }
+      }
+    }
+  ]
+}

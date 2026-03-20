@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { cacheLife, cacheTag } from "next/cache";
 import { ProductListByCollectionDocument, ProductOrderField, OrderDirection } from "@/gql/graphql";
 import { executePublicGraphQL } from "@/lib/graphql";
 import { ProductList } from "@/ui/components/product-list";
@@ -17,10 +16,6 @@ export const metadata = {
  * on-demand revalidation via cacheTag is the intended recovery path.
  */
 async function getFeaturedProducts(channel: string) {
-	"use cache";
-	cacheLife("minutes");
-	cacheTag("collection:featured-products");
-
 	const result = await executePublicGraphQL(ProductListByCollectionDocument, {
 		variables: {
 			slug: "featured-products",

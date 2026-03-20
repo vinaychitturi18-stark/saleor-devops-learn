@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saleor Dev — AWS Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --card-bg: #111827;
+    --card-border: #1f2937;
+    --text: #e5e7eb;
+    --text-dim: #6b7280;
+    --aws-orange: #ff9900;
+    --purple: #8b5cf6;
+    --teal: #14b8a6;
+    --blue: #3b82f6;
+    --red: #ef4444;
+    --green: #22c55e;
+    --pink: #ec4899;
+    --amber: #f59e0b;
+    --cyan: #06b6d4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 40px 20px;
+  }
+
+  .header { text-align: center; margin-bottom: 50px; }
+  .header h1 {
+    font-size: 32px; font-weight: 800;
+    background: linear-gradient(135deg, #ff9900, #f59e0b, #fbbf24);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .header .tags { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .header .tag {
+    font-size: 12px; font-weight: 500; padding: 4px 14px; border-radius: 20px;
+    background: #1f2937; color: #9ca3af; border: 1px solid #374151;
+  }
+
+  .main { max-width: 1300px; margin: 0 auto; display: flex; gap: 30px; }
+  .center-col { flex: 1; }
+  .side-col { width: 240px; padding-top: 440px; }
+
+  /* Service card */
+  .svc {
+    background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px;
+    padding: 20px; text-align: center; transition: all 0.3s ease; position: relative;
+  }
+  .svc:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .svc-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+  }
+  .svc-icon img { width: 36px; height: 36px; object-fit: contain; }
+  .svc-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .svc-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .svc-badges { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .badge { font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .b-port { background: #172554; color: #60a5fa; }
+  .b-sg { background: #1e1040; color: #a78bfa; }
+  .b-arch { background: #052e16; color: #4ade80; }
+  .b-cpu { background: #451a03; color: #fb923c; }
+
+  .accent-purple { border-color: var(--purple); }
+  .accent-purple .svc-icon { background: rgba(139,92,246,0.15); }
+  .accent-orange { border-color: var(--aws-orange); }
+  .accent-orange .svc-icon { background: rgba(255,153,0,0.15); }
+  .accent-blue { border-color: var(--blue); }
+  .accent-blue .svc-icon { background: rgba(59,130,246,0.15); }
+  .accent-red { border-color: var(--red); }
+  .accent-red .svc-icon { background: rgba(239,68,68,0.15); }
+  .accent-green { border-color: var(--green); }
+  .accent-green .svc-icon { background: rgba(34,197,94,0.15); }
+  .accent-pink { border-color: var(--pink); }
+  .accent-pink .svc-icon { background: rgba(236,72,153,0.15); }
+  .accent-cyan { border-color: var(--cyan); }
+  .accent-cyan .svc-icon { background: rgba(6,182,212,0.15); }
+  .accent-gradient {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #111827, #1a1040);
+  }
+  .accent-gradient .svc-icon { background: rgba(102,126,234,0.2); }
+
+  .row { display: flex; justify-content: center; gap: 20px; align-items: stretch; }
+
+  /* Connectors */
+  .conn { display: flex; justify-content: center; padding: 6px 0; }
+  .arrow-down { width: 2px; height: 32px; position: relative; }
+  .arrow-down::after {
+    content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+  }
+  .arr-purple { background: var(--purple); }
+  .arr-purple::after { border-top: 8px solid var(--purple); }
+  .arr-orange { background: var(--aws-orange); }
+  .arr-orange::after { border-top: 8px solid var(--aws-orange); }
+
+  /* Branch ALB → 3 services */
+  .branch { position: relative; height: 55px; margin: 0 40px; }
+  .branch-stem { position: absolute; left: 50%; top: 0; width: 2px; height: 20px; background: var(--aws-orange); }
+  .branch-bar { position: absolute; top: 20px; left: 10%; right: 10%; height: 2px; background: var(--aws-orange); }
+  .branch-leg {
+    position: absolute; top: 20px; width: 2px; height: 28px; background: var(--aws-orange);
+  }
+  .branch-leg::after {
+    content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent;
+    border-top: 7px solid var(--aws-orange);
+  }
+  .bl-1 { left: 10%; } .bl-2 { left: 50%; } .bl-3 { right: 10%; }
+  .branch-label {
+    position: absolute; top: 6px; font-size: 10px; font-weight: 700; color: #fbbf24;
+    background: var(--bg); padding: 0 6px; border-radius: 4px; white-space: nowrap;
+  }
+  .blbl-1 { left: 2%; } .blbl-2 { left: 50%; transform: translateX(-50%); } .blbl-3 { right: 2%; }
+
+  /* Branch backend → DB/Redis/S3 */
+  .db-branch { position: relative; height: 50px; margin: 0 40px; }
+  .db-stem { position: absolute; left: 16%; top: 0; width: 2px; height: 18px; background: var(--blue); }
+  .db-bar { position: absolute; top: 18px; left: 8%; right: 8%; height: 2px; background: var(--blue); }
+  .db-leg-l { position: absolute; top: 18px; left: 8%; width: 2px; height: 26px; background: var(--blue); }
+  .db-leg-l::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--blue); }
+  .db-leg-m { position: absolute; top: 18px; left: 50%; width: 2px; height: 26px; background: var(--red); }
+  .db-leg-m::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--red); }
+  .db-leg-r { position: absolute; top: 18px; right: 8%; width: 2px; height: 26px; background: var(--green); }
+  .db-leg-r::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--green); }
+  .db-label { position: absolute; top: 2px; font-size: 9px; font-weight: 700; background: var(--bg); padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+  .dbl-db { left: 1%; color: #60a5fa; }
+  .dbl-cache { left: 46%; color: #f87171; }
+  .dbl-s3 { right: 1%; color: #4ade80; }
+
+  /* Section boxes */
+  .section { border-radius: 20px; padding: 24px 20px; margin: 8px 0; position: relative; }
+  .section-label {
+    position: absolute; top: -13px; left: 20px; font-weight: 700; font-size: 12px;
+    padding: 3px 14px; border-radius: 8px; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label img { width: 18px; height: 18px; }
+  .vpc-section { border: 2px solid rgba(255,153,0,0.4); background: rgba(255,153,0,0.02); padding-top: 30px; }
+  .vpc-label { background: linear-gradient(135deg, #ff9900, #f59e0b); color: #000; font-weight: 800; }
+  .pub-section { border: 1.5px dashed rgba(20,184,166,0.4); background: rgba(20,184,166,0.02); }
+  .pub-label { background: #042f2e; color: #5eead4; }
+  .priv-section { border: 1.5px dashed rgba(59,130,246,0.3); background: rgba(59,130,246,0.02); }
+  .priv-label { background: #172554; color: #93c5fd; }
+
+  .infra-row { display: flex; justify-content: center; gap: 16px; margin-bottom: 14px; }
+  .infra-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: #1f2937; border: 1px solid #374151; padding: 6px 16px; border-radius: 10px; font-size: 12px;
+  }
+  .infra-pill img { width: 22px; height: 22px; }
+  .infra-pill .pill-name { font-weight: 600; color: #fbbf24; }
+
+  /* Side cards */
+  .side-svc {
+    background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 14px;
+    padding: 14px; text-align: center; margin-bottom: 14px; transition: all 0.3s ease;
+  }
+  .side-svc:hover { transform: translateX(-4px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .side-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px;
+  }
+  .side-icon img { width: 28px; height: 28px; object-fit: contain; }
+  .side-name { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
+  .side-desc { font-size: 10px; color: var(--text-dim); line-height: 1.6; }
+
+  /* Bottom section */
+  .flow-section { max-width: 1300px; margin: 40px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .flow-card { background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 24px; }
+  .flow-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .flow-card h3 .fc-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .flow-step { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; color: #9ca3af; }
+  .flow-num {
+    width: 22px; height: 22px; border-radius: 50%; background: #1f2937; color: #fff;
+    font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .flow-arr { color: var(--aws-orange); font-weight: 800; }
+  .flow-hl { color: #60a5fa; font-weight: 600; }
+  .flow-path { color: #4ade80; font-weight: 600; font-family: 'SF Mono', monospace; }
+  .sg-table { width: 100%; font-size: 12px; margin-top: 10px; }
+  .sg-table td { padding: 6px 10px; border-bottom: 1px solid #1f2937; }
+  .sg-name { color: #a78bfa; font-weight: 600; }
+  .sg-rule { color: #9ca3af; }
+  .sg-dir { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: #172554; color: #60a5fa; }
+
+  /* NAT flow connector on the left side of VPC */
+  .nat-flow {
+    position: absolute; left: -60px; top: 0; bottom: 0; width: 60px;
+  }
+  .nat-flow-line {
+    position: absolute; left: 28px; width: 2px;
+    background: repeating-linear-gradient(to bottom, #f59e0b 0px, #f59e0b 6px, transparent 6px, transparent 12px);
+  }
+  .nat-flow-label {
+    position: absolute; left: -8px; width: 76px; text-align: center;
+    font-size: 9px; font-weight: 700; color: #fbbf24;
+    background: var(--bg); padding: 2px 4px; border-radius: 4px;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    letter-spacing: 1px;
+  }
+  .nat-flow-arrow-up {
+    position: absolute; left: 22px;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-bottom: 8px solid #f59e0b;
+  }
+  .nat-flow-arrow-right {
+    position: absolute;
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+    border-left: 7px solid #f59e0b;
+  }
+  .nat-horiz-line {
+    position: absolute; height: 2px;
+    background: repeating-linear-gradient(to right, #f59e0b 0px, #f59e0b 6px, transparent 6px, transparent 12px);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Saleor E-Commerce — AWS Architecture</h1>
+  <div class="tags">
+    <span class="tag">Dev Environment</span>
+    <span class="tag">dev.learnwithvinay.in</span>
+    <span class="tag">us-east-1</span>
+    <span class="tag">ECS Fargate</span>
+    <span class="tag">ARM64 / Graviton2</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="center-col">
+
+    <!-- Internet -->
+    <div class="row">
+      <div class="svc accent-gradient" style="min-width: 280px;">
+        <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/General-Icons/Internet.svg" alt="Internet"></div>
+        <div class="svc-name">Users / Internet</div>
+        <div class="svc-desc">https://dev.learnwithvinay.in</div>
+      </div>
+    </div>
+
+    <div class="conn"><div class="arrow-down arr-purple"></div></div>
+
+    <!-- GoDaddy -->
+    <div class="row">
+      <div class="svc accent-green" style="min-width: 280px;">
+        <div class="svc-icon" style="background: rgba(34,197,94,0.15); font-size: 28px;">🌍</div>
+        <div class="svc-name">GoDaddy Domain</div>
+        <div class="svc-desc">learnwithvinay.in<br>Nameservers → Route 53</div>
+      </div>
+    </div>
+
+    <div class="conn"><div class="arrow-down arr-purple"></div></div>
+
+    <!-- Route 53 + ACM -->
+    <div class="row">
+      <div class="svc accent-purple" style="flex: 1; max-width: 340px;">
+        <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/Route-53.svg" alt="Route 53"></div>
+        <div class="svc-name">Amazon Route 53</div>
+        <div class="svc-desc">Hosted Zone: learnwithvinay.in<br>A Record: dev.learnwithvinay.in → ALB</div>
+      </div>
+      <div class="svc accent-red" style="max-width: 220px;">
+        <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Security-Identity-Compliance/Certificate-Manager.svg" alt="ACM"></div>
+        <div class="svc-name">AWS ACM</div>
+        <div class="svc-desc">SSL/TLS Certificate<br>dev.learnwithvinay.in</div>
+      </div>
+    </div>
+
+    <div class="conn"><div class="arrow-down arr-orange"></div></div>
+
+    <!-- VPC -->
+    <div class="section vpc-section" style="position: relative; margin-left: 70px;">
+      <div class="section-label vpc-label">
+        <img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/Virtual-Private-Cloud.svg" alt="VPC" style="width:18px;height:18px;">
+        VPC — saleor-dev-vpc — 10.0.0.0/16
+      </div>
+
+      <!-- NAT Flow visual on left side -->
+      <div class="nat-flow">
+        <!-- Vertical dashed line from private subnet up to NAT -->
+        <div class="nat-flow-line" style="top: 220px; height: 220px;"></div>
+        <!-- Arrow pointing up at the top -->
+        <div class="nat-flow-arrow-up" style="top: 213px;"></div>
+        <!-- Horizontal line from vertical to NAT pill -->
+        <div class="nat-horiz-line" style="top: 78px; left: 28px; width: 34px;"></div>
+        <div class="nat-flow-arrow-right" style="top: 73px; left: 60px;"></div>
+        <!-- Horizontal line from private subnet to vertical -->
+        <div class="nat-horiz-line" style="top: 440px; left: 28px; width: 34px;"></div>
+        <!-- Label -->
+        <div class="nat-flow-label" style="top: 280px;">OUTBOUND ↑</div>
+      </div>
+
+      <!-- Public Subnet -->
+      <div class="section pub-section" style="position: relative;">
+        <div class="section-label pub-label">Public Subnets — us-east-1a, us-east-1b</div>
+
+        <div class="infra-row" style="margin-top: 8px;">
+          <div class="infra-pill" id="igw-pill">
+            <img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/Internet-Gateway.svg" alt="IGW">
+            <span class="pill-name">Internet Gateway</span>
+          </div>
+          <div class="infra-pill" id="nat-pill" style="border: 1.5px solid #f59e0b;">
+            <img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/NAT-Gateway.svg" alt="NAT">
+            <span class="pill-name">NAT Gateway</span>
+            <span style="color: #6b7280; font-size: 11px;">private → internet</span>
+          </div>
+        </div>
+
+        <!-- ALB -->
+        <div class="row" style="justify-content: center;">
+          <div class="svc accent-purple" style="min-width: 550px;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/Elastic-Load-Balancing.svg" alt="ALB"></div>
+            <div class="svc-name">Application Load Balancer</div>
+            <div class="svc-desc">saleor-dev-alb &nbsp;|&nbsp; HTTPS :443 → HTTP internally (SSL termination)</div>
+            <div class="svc-badges"><span class="badge b-sg">🛡️ alb-sg-dev</span></div>
+            <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center;">
+              <div style="background: #1e1040; border: 1px solid #6d28d9; border-radius: 10px; padding: 8px 14px; text-align: center;">
+                <div style="font-weight: 700; font-size: 13px; color: #c4b5fd;">/graphql/*</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">→ backend :8000</div>
+              </div>
+              <div style="background: #1e1040; border: 1px solid #6d28d9; border-radius: 10px; padding: 8px 14px; text-align: center;">
+                <div style="font-weight: 700; font-size: 13px; color: #c4b5fd;">/dashboard/*</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">→ dashboard :80</div>
+              </div>
+              <div style="background: #1e1040; border: 1px solid #6d28d9; border-radius: 10px; padding: 8px 14px; text-align: center;">
+                <div style="font-weight: 700; font-size: 13px; color: #c4b5fd;">/* default</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">→ storefront :3000</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Branch ALB → 3 services -->
+      <div class="branch">
+        <div class="branch-stem"></div>
+        <div class="branch-bar"></div>
+        <div class="branch-leg bl-1"></div>
+        <div class="branch-leg bl-2"></div>
+        <div class="branch-leg bl-3"></div>
+        <div class="branch-label blbl-1">/graphql/*</div>
+        <div class="branch-label blbl-2">/dashboard/*</div>
+        <div class="branch-label blbl-3">/* default</div>
+      </div>
+
+      <!-- Private Subnet -->
+      <div class="section priv-section">
+        <div class="section-label priv-label">Private Subnets — us-east-1a, us-east-1b</div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 10px 14px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="https://icon.icepanel.io/AWS/svg/Containers/Elastic-Container-Service.svg" alt="ECS" style="width: 22px; height: 22px;">
+            <span style="font-size: 11px; color: #6b7280; font-weight: 600; letter-spacing: 1px;">ECS CLUSTER: saleor-dev (Fargate)</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; background: #1a1500; border: 1px solid #f59e0b40; border-radius: 8px; padding: 4px 12px;">
+            <span style="font-size: 10px; color: #fbbf24;">← Outbound via</span>
+            <img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/NAT-Gateway.svg" alt="NAT" style="width: 16px; height: 16px;">
+            <span style="font-size: 10px; color: #fbbf24;">NAT Gateway →</span>
+            <img src="https://icon.icepanel.io/AWS/svg/Networking-Content-Delivery/Internet-Gateway.svg" alt="IGW" style="width: 16px; height: 16px;">
+            <span style="font-size: 10px; color: #fbbf24;">→ Internet</span>
+          </div>
+        </div>
+
+        <!-- 3 ECS Services -->
+        <div class="row">
+          <div class="svc accent-orange" style="flex: 1;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Containers/Fargate.svg" alt="Fargate"></div>
+            <div class="svc-name">saleor-backend</div>
+            <div class="svc-desc">Django + Gunicorn<br>GraphQL API Server</div>
+            <div class="svc-badges">
+              <span class="badge b-port">Port 8000</span>
+              <span class="badge b-arch">ARM64</span>
+              <span class="badge b-cpu">0.5 vCPU / 1GB</span>
+              <span class="badge b-sg">🛡️ ecs-sg-dev</span>
+            </div>
+          </div>
+          <div class="svc accent-orange" style="flex: 1;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Containers/Fargate.svg" alt="Fargate"></div>
+            <div class="svc-name">saleor-dashboard</div>
+            <div class="svc-desc">Nginx + React SPA<br>Admin Panel</div>
+            <div class="svc-badges">
+              <span class="badge b-port">Port 80</span>
+              <span class="badge b-arch">ARM64</span>
+              <span class="badge b-cpu">0.25 vCPU / 512MB</span>
+              <span class="badge b-sg">🛡️ ecs-sg-dev</span>
+            </div>
+          </div>
+          <div class="svc accent-orange" style="flex: 1;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Containers/Fargate.svg" alt="Fargate"></div>
+            <div class="svc-name">saleor-storefront</div>
+            <div class="svc-desc">Next.js 16 SSR<br>Customer-Facing Store</div>
+            <div class="svc-badges">
+              <span class="badge b-port">Port 3000</span>
+              <span class="badge b-arch">ARM64</span>
+              <span class="badge b-cpu">0.5 vCPU / 1GB</span>
+              <span class="badge b-sg">🛡️ ecs-sg-dev</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DB/Redis/S3 connector -->
+        <div class="db-branch">
+          <div class="db-stem"></div>
+          <div class="db-bar"></div>
+          <div class="db-leg-l"></div>
+          <div class="db-leg-m"></div>
+          <div class="db-leg-r"></div>
+          <div class="db-label dbl-db">DATABASE</div>
+          <div class="db-label dbl-cache">CACHE / BROKER</div>
+          <div class="db-label dbl-s3">MEDIA STORAGE</div>
+        </div>
+
+        <!-- Data Layer -->
+        <div class="row" style="gap: 16px;">
+          <div class="svc accent-blue" style="flex: 1;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Database/RDS.svg" alt="RDS"></div>
+            <div class="svc-name">Amazon RDS</div>
+            <div class="svc-desc">PostgreSQL<br>Instance: saleor-dev<br>Subnet: saleor-dev-subnet-group</div>
+            <div class="svc-badges">
+              <span class="badge b-port">Port 5432</span>
+              <span class="badge b-sg">🛡️ rds-sg-dev</span>
+            </div>
+          </div>
+          <div class="svc accent-red" style="flex: 1;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Database/ElastiCache.svg" alt="ElastiCache"></div>
+            <div class="svc-name">Amazon ElastiCache</div>
+            <div class="svc-desc">Redis (Cluster Mode)<br>Cluster: saleor-dev<br>Celery Broker + App Cache</div>
+            <div class="svc-badges">
+              <span class="badge b-port">Port 6379 (TLS)</span>
+              <span class="badge b-sg">🛡️ redis-sg-dev</span>
+            </div>
+          </div>
+          <div class="svc accent-green" style="flex: 1;">
+            <div class="svc-icon"><img src="https://icon.icepanel.io/AWS/svg/Storage/Simple-Storage-Service.svg" alt="S3"></div>
+            <div class="svc-name">Amazon S3</div>
+            <div class="svc-desc">Media Storage<br>saleor-media-dev-learnwithvinay<br>Product images &amp; uploads</div>
+            <div class="svc-badges">
+              <span class="badge b-arch">public-read</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Side Column -->
+  <div class="side-col">
+
+    <div class="side-svc" style="border-color: var(--aws-orange);">
+      <div class="side-icon" style="background: rgba(255,153,0,0.15);">
+        <img src="https://icon.icepanel.io/AWS/svg/Containers/Elastic-Container-Registry.svg" alt="ECR">
+      </div>
+      <div class="side-name">Amazon ECR</div>
+      <div class="side-desc">
+        Docker Image Registry<br>
+        saleor-backend:latest<br>
+        saleor-dashboard:latest<br>
+        saleor-storefront:latest
+      </div>
+    </div>
+
+    <div class="side-svc" style="border-color: var(--red);">
+      <div class="side-icon" style="background: rgba(239,68,68,0.15);">
+        <img src="https://icon.icepanel.io/AWS/svg/Security-Identity-Compliance/Secrets-Manager.svg" alt="Secrets Manager">
+      </div>
+      <div class="side-name">Secrets Manager</div>
+      <div class="side-desc">
+        Secret: saleor/dev<br>
+        DATABASE_URL, SECRET_KEY<br>
+        CELERY_BROKER_URL, CACHE_URL<br>
+        ALLOWED_HOSTS, EMAIL_URL
+      </div>
+    </div>
+
+    <div class="side-svc" style="border-color: var(--pink);">
+      <div class="side-icon" style="background: rgba(236,72,153,0.15);">
+        <img src="https://icon.icepanel.io/AWS/svg/Management-Governance/CloudWatch.svg" alt="CloudWatch">
+      </div>
+      <div class="side-name">CloudWatch Logs</div>
+      <div class="side-desc">
+        /ecs/saleor-backend-dev<br>
+        /ecs/saleor-dashboard-dev<br>
+        /ecs/saleor-storefront-dev
+      </div>
+    </div>
+
+    <div class="side-svc" style="border-color: var(--cyan);">
+      <div class="side-icon" style="background: rgba(6,182,212,0.15);">
+        <img src="https://icon.icepanel.io/AWS/svg/Security-Identity-Compliance/IAM-Identity-Center.svg" alt="IAM">
+      </div>
+      <div class="side-name">IAM: ecsTaskRole</div>
+      <div class="side-desc">
+        ECR Pull Images<br>
+        Secrets Manager Read<br>
+        CloudWatch Logs Write<br>
+        S3 Read/Write
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Bottom Section -->
+<div class="flow-section">
+  <div class="flow-card">
+    <h3><span class="fc-dot" style="background: var(--aws-orange);"></span> Request Flow</h3>
+    <div class="flow-step"><span class="flow-num">1</span><span>User opens</span><span class="flow-hl">https://dev.learnwithvinay.in</span></div>
+    <div class="flow-step"><span class="flow-num">2</span><span>DNS:</span><span>GoDaddy NS</span><span class="flow-arr">→</span><span class="flow-hl">Route 53</span><span class="flow-arr">→</span><span>returns ALB IP</span></div>
+    <div class="flow-step"><span class="flow-num">3</span><span>HTTPS hits</span><span class="flow-hl">ALB</span><span class="flow-arr">→</span><span>SSL terminated (ACM)</span></div>
+    <div class="flow-step"><span class="flow-num">4</span><span>ALB routes by path:</span></div>
+    <div style="padding-left: 36px; margin-top: 4px;">
+      <div class="flow-step"><span class="flow-path">/graphql/*</span><span class="flow-arr">→</span><span>Backend :8000</span><span class="flow-arr">→</span><span>RDS + Redis + S3</span></div>
+      <div class="flow-step"><span class="flow-path">/dashboard/*</span><span class="flow-arr">→</span><span>Dashboard :80 (React SPA)</span></div>
+      <div class="flow-step"><span class="flow-path">/* default</span><span class="flow-arr">→</span><span>Storefront :3000 (Next.js SSR)</span></div>
+    </div>
+  </div>
+
+  <div class="flow-card">
+    <h3><span class="fc-dot" style="background: var(--purple);"></span> Security Groups</h3>
+    <table class="sg-table">
+      <tr><td><span class="sg-name">alb-sg-dev</span></td><td><span class="sg-dir">IN</span></td><td class="sg-rule">Port 443 (HTTPS) from 0.0.0.0/0</td></tr>
+      <tr><td><span class="sg-name">ecs-sg-dev</span></td><td><span class="sg-dir">IN</span></td><td class="sg-rule">All ports from <strong style="color:#a78bfa;">alb-sg-dev</strong> only</td></tr>
+      <tr><td><span class="sg-name">rds-sg-dev</span></td><td><span class="sg-dir">IN</span></td><td class="sg-rule">Port 5432 from <strong style="color:#a78bfa;">ecs-sg-dev</strong> only</td></tr>
+      <tr><td><span class="sg-name">redis-sg-dev</span></td><td><span class="sg-dir">IN</span></td><td class="sg-rule">Port 6379 from <strong style="color:#a78bfa;">ecs-sg-dev</strong> only</td></tr>
+    </table>
+    <div style="margin-top: 20px;">
+      <h3 style="font-size: 13px;"><span class="fc-dot" style="background: var(--green);"></span> Key Design Decisions</h3>
+      <div style="font-size: 11px; color: #6b7280; margin-top: 8px; line-height: 1.8;">
+        ✅ ALB in public subnet — ECS in private<br>
+        ✅ SSL terminates at ALB — HTTP internally<br>
+        ✅ ARM64 Graviton — 20% cheaper than x86<br>
+        ✅ NAT Gateway — private subnet internet access<br>
+        ✅ Secrets in AWS Secrets Manager — not env vars<br>
+        ✅ Stateless containers — data in RDS/Redis/S3<br>
+        ✅ Private subnet → NAT GW → IGW for outbound internet<br>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

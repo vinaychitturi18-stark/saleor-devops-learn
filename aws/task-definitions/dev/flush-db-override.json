@@ -1,0 +1,6 @@
+{
+  "containerOverrides": [{
+    "name": "saleor-manage",
+    "command": ["python manage.py flush --no-input && echo 'Database flushed successfully'"]
+  }]
+}
