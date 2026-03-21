@@ -42,6 +42,7 @@ pipeline {
                         docker build \
                             --build-arg API_URL=https://learnwithvinay.in/graphql/ \
                             --build-arg APP_MOUNT_URI=/dashboard/ \
+                            --build-arg STATIC_URL=/dashboard/ \
                             -t $DASHBOARD_IMAGE:$BUILD_NUMBER .
                         docker tag $DASHBOARD_IMAGE:$BUILD_NUMBER $DASHBOARD_IMAGE:latest
                     '''
