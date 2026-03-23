@@ -1,0 +1,8 @@
+# Terraform local directories
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.terraform.lock.hcl
+
+# Secret overrides
+*.tfvars.local
