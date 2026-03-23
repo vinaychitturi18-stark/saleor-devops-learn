@@ -134,6 +134,7 @@ resource "aws_ecr_repository" "this" {
 
   name                 = each.key
   image_tag_mutability = "MUTABLE"  # allows overwriting "latest" tag
+  force_delete         = false      # prevent accidental deletion of images
 
   image_scanning_configuration {
     scan_on_push = true  # automatically scan for vulnerabilities on every push
